@@ -1,8 +1,6 @@
 # ShermanOaksGalleria1980s-recreation
 
-Sherman Oaks Fashion Square Digital Recreation
-
-Digital reconstruction of the Sherman Oaks Galleria as it appeared in the 1980s and early 1990s.  Currently a very simple proof of concept vibecoded for threejs. Let's make a better one!
+Sherman Oaks Fashion Square Digital Recreation. As it appeared in the 1980s and early 1990s.  Currently a very simple proof of concept vibecoded for threejs. Let's make a better one!
 
 
 Let’s work as a community to reconstruct the Sherman Oaks Galleria as it stood in the 1980s and early 1990s—complete with Time-Out arcade, KB Toys, Sam Goody and all the iconic storefronts. It's surprising that no reconstructions of this cultural landmark exist online.
