@@ -70,3 +70,32 @@ In the Line of Fire (1993)
 Crazy in Alabama (1999)
 The Colbys (1985–1987) 
 Phantom of the Mall (1989)
+
+Sherman Oaks Galleria (1990s) - Look and Feel
+The overall vibe should be a blend of late 80s holdovers and burgeoning 90s aesthetics. Think bright, airy, and bustling with a specific kind of consumer energy unique to that decade.
+
+Architectural Style & Layout
+Multi-level Design: The Galleria was famous for its multiple levels (typically two or three main shopping floors) connected by escalators and often a prominent central glass elevator.
+Central Atrium/Courts: Large, open central areas were key. These spaces were often flooded with natural light from skylights or large glass ceilings. Fountains or water features were common focal points.
+
+Storefronts:
+Variety: A mix of anchor department stores (like Robinsons-May, The Broadway), smaller chain stores (Contempo Casuals, Structure, Sam Goody, Waldenbooks, Foot Locker), and unique boutiques.
+Design: Storefronts would have varied greatly. Some might have had bold, geometric entrances, while others would be more traditional. Lots of glass, bright signage (some neon, some backlit).
+Flooring: Likely large, polished tiles – perhaps in shades of beige, off-white, or a subtle terrazzo pattern.
+Railings: Often brass, chrome, or painted metal with glass panels.
+Seating Areas: Scattered benches, possibly in materials like wood, laminate, or upholstered vinyl, often grouped around planters.
+Planters: Large built-in planters with live (or very convincing artificial) plants and trees were a huge part of the 80s/90s mall aesthetic, adding a touch of "nature" indoors.
+
+Color Palette & Materials
+Dominant Colors:
+Pastels & Neons (fading but present): Hints of teal, dusty rose, lavender, and peach, possibly mixed with brighter pops of neon in signage or specific store branding.
+Earthy Tones & Neutrals: Beige, cream, terracotta, and various shades of grey would have been common for larger surfaces like walls and floors.
+Primary Colors: Bold reds, blues, and yellows in some store designs and mall graphics.
+
+Materials:
+Glass: Abundant – skylights, storefronts, railings, elevators.
+Mirrored Surfaces: Mirrored columns or wall sections were very trendy.
+Brass & Chrome: For railings, elevator details, light fixtures, and store accents.
+Laminate & Formica: Especially for food court tables and some store fixtures.
+Stucco/Textured Walls: Common for interior wall finishes.
+Tile: For flooring and some wall accents.
