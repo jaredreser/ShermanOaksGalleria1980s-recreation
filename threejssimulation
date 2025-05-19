@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sherman Oaks Galleria - 90s Simulation (Phase 5 Railings)</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: Arial, sans-serif;
+            background-color: #333; 
+        }
+        canvas { 
+            display: block; 
+        }
+        #info {
+            position: absolute;
+            top: 0; 
+            left: 0; 
+            width: 100%;
+            text-align: center;
+            color: white;
+            background-color: rgba(0,0,0,0.7); 
+            padding: 8px 0; 
+            font-size: 14px;
+            z-index: 100;
+            box-sizing: border-box; 
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        Sherman Oaks Galleria (1990s) - Phase 5: Railings<br>
+        Controls: Left-Click & Drag = Orbit | Scroll Wheel = Zoom | Right-Click & Drag = Pan
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        let scene, camera, renderer, controls;
+        let clock;
+
+        // --- Mall Constants ---
+        const mall = {
+            width: 80,    
+            length: 200,  
+            storyHeight: 10,
+            numFloors: 3,
+            floorThickness: 0.5,
+            wallThickness: 1 
+        };
+
+        const anchorStore = {
+            width: mall.width, 
+            depth: 50,   
+            height: mall.storyHeight * mall.numFloors 
+        };
+        
+        const centralMallLength = mall.length - (2 * anchorStore.depth);
+
+        const atrium = {
+            width: mall.width * 0.5,  
+            length: centralMallLength * 0.8, 
+        };
+
+        const elevator = {
+            width: atrium.width * 0.2, 
+            depth: atrium.width * 0.2, 
+            frameThickness: 0.3,
+            carHeight: mall.storyHeight * 0.8
+        };
+
+        const escalator = {
+            width: 3.5, 
+            thickness: 0.75, 
+            runFactor: 1.732, 
+            spacing: 1.5, 
+            gapFromElevator: 5 
+        };
+
+        const skylight = {
+            frameThickness: 0.5,
+            frameHeight: 1.5, 
+            glassOpacity: 0.25
+        };
+
+        const railing = {
+            height: 1.2,
+            postSize: 0.15,
+            postSpacing: 2.5, // Spacing between vertical posts
+            railThickness: 0.08,
+            numRails: 3 // Number of horizontal rails
+        };
+
+        // --- Initialization ---
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x505050); 
+            clock = new THREE.Clock();
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(atrium.width * 0.7, mall.storyHeight * 1.2 , atrium.length * 0.6); // Adjusted camera
+            camera.lookAt(0, mall.storyHeight, 0); 
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true; 
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+            document.body.appendChild(renderer.domElement);
+
+            // --- Lighting ---
+            const ambientLight = new THREE.AmbientLight(0x707070, 1.8); // Slightly brighter ambient
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 2.2); // Slightly increased intensity
+            directionalLight.position.set(0, mall.storyHeight * mall.numFloors + 50, 0); 
+            directionalLight.target.position.set(0,0,0); 
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 4096; 
+            directionalLight.shadow.mapSize.height = 4096;
+            directionalLight.shadow.camera.near = 20; 
+            directionalLight.shadow.camera.far = 200; 
+            directionalLight.shadow.camera.left = -atrium.width * 1.5; // Wider shadow coverage
+            directionalLight.shadow.camera.right = atrium.width * 1.5;
+            directionalLight.shadow.camera.top = atrium.length * 1.5;
+            directionalLight.shadow.camera.bottom = -atrium.length * 1.5;
+            scene.add(directionalLight);
+            scene.add(directionalLight.target); 
+            
+            // --- Controls ---
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.target.set(0, mall.storyHeight, 0); // Target mid-height of first floor atrium
+            controls.enableDamping = true; 
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false; 
+            controls.minDistance = 5; 
+            controls.maxDistance = 300; // Reduced max distance to keep focus
+            controls.maxPolarAngle = Math.PI / 1.8; // Allow looking down a bit more for railings
+
+            // --- Create Mall Elements ---
+            createMallShell();
+            createElevator();
+            createEscalators();
+            createSkylight(); 
+            createRailings(); // New function call
+
+            // --- Event Listeners ---
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        // --- Mall Shell Construction ---
+        function createMallShell() {
+            const floorMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x888888, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide 
+            });
+            const anchorMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x606090, roughness: 0.7, metalness: 0.3 
+            });
+            const wallMaterial = new THREE.MeshStandardMaterial({
+                color: 0xcccccc, roughness: 0.9, metalness: 0.1
+            });
+
+            const corridorWidth = (mall.width - atrium.width) / 2;
+
+            for (let i = 0; i < mall.numFloors; i++) {
+                const yPos = i * mall.storyHeight + (mall.floorThickness / 2);
+                const floorGroup = new THREE.Group(); 
+                floorGroup.position.y = yPos;
+
+                const floorSeg1Geo = new THREE.BoxGeometry(corridorWidth, mall.floorThickness, centralMallLength);
+                const floorSeg1Mesh = new THREE.Mesh(floorSeg1Geo, floorMaterial);
+                floorSeg1Mesh.position.x = atrium.width/2 + corridorWidth/2;
+                floorSeg1Mesh.receiveShadow = true;
+                floorGroup.add(floorSeg1Mesh);
+
+                const floorSeg2Geo = new THREE.BoxGeometry(corridorWidth, mall.floorThickness, centralMallLength);
+                const floorSeg2Mesh = new THREE.Mesh(floorSeg2Geo, floorMaterial);
+                floorSeg2Mesh.position.x = -(atrium.width/2 + corridorWidth/2);
+                floorSeg2Mesh.receiveShadow = true;
+                floorGroup.add(floorSeg2Mesh);
+
+                const endCapLength = (centralMallLength - atrium.length) / 2;
+                if (endCapLength > 0.01) { 
+                    const floorSeg3Geo = new THREE.BoxGeometry(atrium.width, mall.floorThickness, endCapLength);
+                    const floorSeg3Mesh = new THREE.Mesh(floorSeg3Geo, floorMaterial);
+                    floorSeg3Mesh.position.z = atrium.length/2 + endCapLength/2;
+                    floorSeg3Mesh.receiveShadow = true;
+                    floorGroup.add(floorSeg3Mesh);
+
+                    const floorSeg4Geo = new THREE.BoxGeometry(atrium.width, mall.floorThickness, endCapLength);
+                    const floorSeg4Mesh = new THREE.Mesh(floorSeg4Geo, floorMaterial);
+                    floorSeg4Mesh.position.z = -(atrium.length/2 + endCapLength/2);
+                    floorSeg4Mesh.receiveShadow = true;
+                    floorGroup.add(floorSeg4Mesh);
+                }
+                scene.add(floorGroup);
+            }
+
+            const anchorYPos = (anchorStore.height / 2) - (mall.floorThickness / 2) ;
+            const anchor1Geometry = new THREE.BoxGeometry(anchorStore.width, anchorStore.height, anchorStore.depth);
+            const anchor1Mesh = new THREE.Mesh(anchor1Geometry, anchorMaterial);
+            anchor1Mesh.position.set(0, anchorYPos, -(centralMallLength / 2) - (anchorStore.depth / 2));
+            anchor1Mesh.castShadow = true; anchor1Mesh.receiveShadow = true;
+            scene.add(anchor1Mesh);
+
+            const anchor2Geometry = new THREE.BoxGeometry(anchorStore.width, anchorStore.height, anchorStore.depth);
+            const anchor2Mesh = new THREE.Mesh(anchor2Geometry, anchorMaterial);
+            anchor2Mesh.position.set(0, anchorYPos, (centralMallLength / 2) + (anchorStore.depth / 2));
+            anchor2Mesh.castShadow = true; anchor2Mesh.receiveShadow = true;
+            scene.add(anchor2Mesh);
+
+            const wallHeight = mall.storyHeight * mall.numFloors;
+            const wallYPos = (wallHeight / 2) - (mall.floorThickness / 2);
+
+            const wall1Geometry = new THREE.BoxGeometry(mall.wallThickness, wallHeight, centralMallLength);
+            const wall1Mesh = new THREE.Mesh(wall1Geometry, wallMaterial);
+            wall1Mesh.position.set(mall.width / 2 - mall.wallThickness / 2, wallYPos, 0);
+            wall1Mesh.castShadow = true; wall1Mesh.receiveShadow = true;
+            scene.add(wall1Mesh);
+
+            const wall2Geometry = new THREE.BoxGeometry(mall.wallThickness, wallHeight, centralMallLength);
+            const wall2Mesh = new THREE.Mesh(wall2Geometry, wallMaterial);
+            wall2Mesh.position.set(-(mall.width / 2 - mall.wallThickness / 2), wallYPos, 0);
+            wall2Mesh.castShadow = true; wall2Mesh.receiveShadow = true;
+            scene.add(wall2Mesh);
+            
+            const groundGeometry = new THREE.PlaneGeometry(mall.width * 2.5, mall.length * 1.5);
+            const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x404040, side: THREE.DoubleSide, roughness: 0.9 });
+            const groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
+            groundMesh.rotation.x = -Math.PI / 2; 
+            groundMesh.position.y = -mall.floorThickness / 2 - 0.01; 
+            groundMesh.receiveShadow = true;
+            scene.add(groundMesh);
+        }
+
+        function createElevator() {
+            const elevatorGroup = new THREE.Group();
+            const totalHeight = mall.storyHeight * mall.numFloors;
+            const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x505050, roughness: 0.3, metalness: 0.7 });
+            const glassMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xaaddee, roughness: 0.05, metalness: 0.1,
+                transparent: true, opacity: 0.35, side: THREE.DoubleSide
+            });
+
+            const pillarGeo = new THREE.BoxGeometry(elevator.frameThickness, totalHeight, elevator.frameThickness);
+            const positions = [
+                {x: elevator.width/2 - elevator.frameThickness/2, z: elevator.depth/2 - elevator.frameThickness/2},
+                {x: -elevator.width/2 + elevator.frameThickness/2, z: elevator.depth/2 - elevator.frameThickness/2},
+                {x: elevator.width/2 - elevator.frameThickness/2, z: -elevator.depth/2 + elevator.frameThickness/2},
+                {x: -elevator.width/2 + elevator.frameThickness/2, z: -elevator.depth/2 + elevator.frameThickness/2},
+            ];
+            positions.forEach(pos => {
+                const pillar = new THREE.Mesh(pillarGeo, frameMaterial);
+                pillar.position.set(pos.x, totalHeight/2 - mall.floorThickness/2, pos.z);
+                pillar.castShadow = true;
+                elevatorGroup.add(pillar);
+            });
+
+            const glassPanelXZGeo = new THREE.PlaneGeometry(elevator.width - elevator.frameThickness*2, totalHeight);
+            const glassPanelZYGeo = new THREE.PlaneGeometry(elevator.depth - elevator.frameThickness*2, totalHeight);
+
+            const glassF = new THREE.Mesh(glassPanelXZGeo, glassMaterial);
+            glassF.position.set(0, totalHeight/2 - mall.floorThickness/2, elevator.depth/2 - elevator.frameThickness/2);
+            elevatorGroup.add(glassF);
+            const glassB = new THREE.Mesh(glassPanelXZGeo, glassMaterial);
+            glassB.position.set(0, totalHeight/2 - mall.floorThickness/2, -(elevator.depth/2 - elevator.frameThickness/2));
+            elevatorGroup.add(glassB);
+            const glassL = new THREE.Mesh(glassPanelZYGeo, glassMaterial);
+            glassL.rotation.y = Math.PI/2;
+            glassL.position.set(elevator.width/2 - elevator.frameThickness/2, totalHeight/2 - mall.floorThickness/2, 0);
+            elevatorGroup.add(glassL);
+            const glassR = new THREE.Mesh(glassPanelZYGeo, glassMaterial);
+            glassR.rotation.y = Math.PI/2;
+            glassR.position.set(-(elevator.width/2 - elevator.frameThickness/2), totalHeight/2 - mall.floorThickness/2, 0);
+            elevatorGroup.add(glassR);
+
+            const carGeo = new THREE.BoxGeometry(elevator.width * 0.85, elevator.carHeight, elevator.depth * 0.85);
+            const carMat = new THREE.MeshStandardMaterial({color: 0x777777, roughness:0.4, metalness: 0.6});
+            const carMesh = new THREE.Mesh(carGeo, carMat);
+            carMesh.position.set(0, mall.storyHeight * 0.5 - mall.floorThickness/2, 0); // Adjusted car Y position
+            carMesh.castShadow = true;
+            elevatorGroup.add(carMesh);
+            scene.add(elevatorGroup);
+        }
+
+        function createEscalators() {
+            const escalatorMaterial = new THREE.MeshStandardMaterial({ color: 0x657383, roughness: 0.6, metalness: 0.4 }); 
+            const rise = mall.storyHeight;
+            const run = rise * escalator.runFactor;
+            const length = Math.sqrt(rise * rise + run * run);
+            const angle = Math.atan2(rise, run);
+            const escalatorGeo = new THREE.BoxGeometry(escalator.width, escalator.thickness, length);
+
+            for (let i = 0; i < mall.numFloors - 1; i++) { 
+                const baseY = i * mall.storyHeight + mall.floorThickness/2; 
+                let offsetX = elevator.width / 2 + escalator.width / 2 + escalator.gapFromElevator; 
+
+                const esc1A = new THREE.Mesh(escalatorGeo, escalatorMaterial);
+                esc1A.rotation.x = -angle; 
+                esc1A.position.set(offsetX, baseY + rise / 2, -run / 2 + atrium.length * 0.2);
+                esc1A.castShadow = true; scene.add(esc1A);
+
+                const esc1B = new THREE.Mesh(escalatorGeo, escalatorMaterial);
+                esc1B.rotation.x = angle; 
+                esc1B.position.set(offsetX + escalator.width + escalator.spacing, baseY + rise / 2, run / 2 - atrium.length * 0.2);
+                esc1B.castShadow = true; scene.add(esc1B);
+
+                offsetX = -(elevator.width / 2 + escalator.width / 2 + escalator.gapFromElevator);
+                const esc2A = new THREE.Mesh(escalatorGeo, escalatorMaterial);
+                esc2A.rotation.x = -angle;
+                esc2A.position.set(offsetX, baseY + rise / 2, -run / 2 + atrium.length * 0.2 );
+                esc2A.castShadow = true; scene.add(esc2A);
+                
+                const esc2B = new THREE.Mesh(escalatorGeo, escalatorMaterial);
+                esc2B.rotation.x = angle;
+                esc2B.position.set(offsetX - escalator.width - escalator.spacing, baseY + rise / 2, run / 2 - atrium.length * 0.2);
+                esc2B.castShadow = true; scene.add(esc2B);
+            }
+        }
+
+        function createSkylight() {
+            const skylightGroup = new THREE.Group();
+            const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x404040, roughness: 0.5, metalness: 0.5 });
+            const glassMaterial = new THREE.MeshStandardMaterial({
+                color: 0x88ccff, 
+                transparent: true, opacity: skylight.glassOpacity,
+                side: THREE.DoubleSide, roughness: 0.1, metalness: 0.0
+            });
+
+            const topY = mall.storyHeight * mall.numFloors + mall.floorThickness / 2; 
+
+            const mainGlassGeo = new THREE.PlaneGeometry(atrium.width, atrium.length);
+            const mainGlassMesh = new THREE.Mesh(mainGlassGeo, glassMaterial);
+            mainGlassMesh.rotation.x = -Math.PI / 2; 
+            mainGlassMesh.position.set(0, topY + skylight.frameHeight - (skylight.frameThickness/2) , 0); 
+            mainGlassMesh.receiveShadow = true; 
+            skylightGroup.add(mainGlassMesh);
+
+            const frameFrontGeo = new THREE.BoxGeometry(atrium.width + 2 * skylight.frameThickness, skylight.frameHeight, skylight.frameThickness);
+            const frameFrontMesh = new THREE.Mesh(frameFrontGeo, frameMaterial);
+            frameFrontMesh.position.set(0, topY + skylight.frameHeight / 2, -atrium.length / 2 - skylight.frameThickness / 2);
+            frameFrontMesh.castShadow = true;
+            skylightGroup.add(frameFrontMesh);
+
+            const frameBackMesh = frameFrontMesh.clone(); 
+            frameBackMesh.position.z = atrium.length / 2 + skylight.frameThickness / 2;
+            skylightGroup.add(frameBackMesh);
+
+            const frameSideGeo = new THREE.BoxGeometry(skylight.frameThickness, skylight.frameHeight, atrium.length);
+            const frameLeftMesh = new THREE.Mesh(frameSideGeo, frameMaterial);
+            frameLeftMesh.position.set(-atrium.width / 2 - skylight.frameThickness / 2, topY + skylight.frameHeight / 2, 0);
+            frameLeftMesh.castShadow = true;
+            skylightGroup.add(frameLeftMesh);
+
+            const frameRightMesh = frameLeftMesh.clone();
+            frameRightMesh.position.x = atrium.width / 2 + skylight.frameThickness / 2;
+            skylightGroup.add(frameRightMesh);
+            
+            const numCrossBeamsX = 3; 
+            const numCrossBeamsZ = 5; 
+            const crossBeamGeoX = new THREE.BoxGeometry(skylight.frameThickness * 0.7, skylight.frameHeight * 0.8, atrium.length);
+            const crossBeamGeoZ = new THREE.BoxGeometry(atrium.width, skylight.frameHeight * 0.8, skylight.frameThickness * 0.7);
+
+            for(let i = 1; i <= numCrossBeamsX; i++) {
+                const beam = new THREE.Mesh(crossBeamGeoZ, frameMaterial);
+                beam.position.set(0, topY + (skylight.frameHeight * 0.8)/2, (-atrium.length/2) + i * (atrium.length / (numCrossBeamsX + 1)) );
+                beam.castShadow = true;
+                skylightGroup.add(beam);
+            }
+             for(let i = 1; i <= numCrossBeamsZ; i++) {
+                const beam = new THREE.Mesh(crossBeamGeoX, frameMaterial);
+                beam.position.set((-atrium.width/2) + i * (atrium.width / (numCrossBeamsZ + 1)), topY + (skylight.frameHeight * 0.8)/2, 0 );
+                beam.castShadow = true;
+                skylightGroup.add(beam);
+            }
+            scene.add(skylightGroup);
+        }
+
+        // --- Railing Construction ---
+        function createRailings() {
+            const railingMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, metalness: 0.2 }); // White railings
+            const postGeo = new THREE.CylinderGeometry(railing.postSize / 2, railing.postSize / 2, railing.height, 8);
+            const railGeo = new THREE.CylinderGeometry(railing.railThickness / 2, railing.railThickness / 2, 1, 8); // Length will be scaled
+
+            // Iterate through floors that need railings (typically floor 1 and 2, index 0 and 1 if ground is 0)
+            // We'll add railings to the first two floors (index 0 and 1)
+            // The top floor (index 2) is directly under the skylight frame, usually no public balcony railing there.
+            for (let i = 0; i < mall.numFloors -1; i++) { // Railings for floor 0 and 1
+                const floorY = i * mall.storyHeight + mall.floorThickness + railing.height / 2; // Y position for the center of the railing posts
+
+                // Railing along +X side of atrium (inner edge of corridor)
+                createRailingSegment(atrium.width / 2, floorY, -atrium.length / 2, atrium.length, 'Z', railingMaterial, postGeo, railGeo);
+                // Railing along -X side of atrium
+                createRailingSegment(-atrium.width / 2, floorY, -atrium.length / 2, atrium.length, 'Z', railingMaterial, postGeo, railGeo);
+                
+                // Railing along +Z side of atrium (inner edge of end cap)
+                createRailingSegment(-atrium.width / 2, floorY, atrium.length / 2, atrium.width, 'X', railingMaterial, postGeo, railGeo);
+                // Railing along -Z side of atrium
+                createRailingSegment(-atrium.width / 2, floorY, -atrium.length / 2, atrium.width, 'X', railingMaterial, postGeo, railGeo);
+            }
+        }
+        
+        function createRailingSegment(startX, y, startZ_or_X, length, axis, material, postGeo, railGeo) {
+            const segmentGroup = new THREE.Group();
+            const numPosts = Math.floor(length / railing.postSpacing) + 1;
+
+            for (let i = 0; i < numPosts; i++) {
+                const post = new THREE.Mesh(postGeo, material);
+                let postX, postZ;
+
+                if (axis === 'Z') { // Railing runs along Z axis
+                    postX = startX;
+                    postZ = startZ_or_X + i * railing.postSpacing;
+                    if (i === numPosts -1 && numPosts > 1) postZ = startZ_or_X + length; // Ensure last post is at the end
+                } else { // Railing runs along X axis
+                    postZ = startZ_or_X; // Here startZ_or_X is actually the Z position
+                    postX = startX + i * railing.postSpacing;
+                    if (i === numPosts -1 && numPosts > 1) postX = startX + length; // Ensure last post is at the end
+                }
+                post.position.set(postX, y, postZ);
+                post.castShadow = true;
+                segmentGroup.add(post);
+            }
+
+            // Add horizontal rails
+            for (let j = 0; j < railing.numRails; j++) {
+                const railY = y - railing.height / 2 + (railing.height / (railing.numRails +1)) * (j + 1) ;
+                const hRail = new THREE.Mesh(railGeo, material);
+                hRail.scale.y = length; // Scale the unit rail to the required length
+                
+                if (axis === 'Z') {
+                    hRail.rotation.x = Math.PI / 2;
+                    hRail.position.set(startX, railY, startZ_or_X + length / 2);
+                } else {
+                    hRail.rotation.z = Math.PI / 2;
+                    hRail.position.set(startX + length / 2, railY, startZ_or_X);
+                }
+                hRail.castShadow = true;
+                segmentGroup.add(hRail);
+            }
+            scene.add(segmentGroup);
+        }
+
+
+        // --- Window Resize & Animation Loop ---
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate); 
+            const delta = clock.getDelta(); 
+            controls.update(delta); 
+            renderer.render(scene, camera);
+        }
+
+        // --- Start ---
+        init();
+        animate();
+    </script>
+</body>
+</html>
