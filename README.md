@@ -1,9 +1,13 @@
 # ShermanOaksGalleria1980s-recreation
 
-Sherman Oaks Galleria Digital Recreation. As it appeared in the 1980s and early 1990s.  Currently a very simple proof of concept vibecoded for threejs. Let's make a better one!
+Sherman Oaks Galleria Digital Recreation. 
 
 
-Let’s work as a community to reconstruct the Sherman Oaks Galleria as it stood in the 1980s and early 1990s—complete with Time-Out arcade, KB Toys, Sam Goody and all the iconic storefronts. It's surprising that no reconstructions of this cultural landmark exist online.
+Let’s work as a community to reconstruct the Sherman Oaks Galleria as it stood in the 1980s and early 1990s—complete with Time-Out arcade, KB Toys, Sam Goody and all the iconic storefronts. It's surprising that no reconstructions of this cultural landmark exist online. Currently this repository contains the code for a very simple proof of concept vibecoded for threejs. Let's make a better one!
+
+Here is the URL to a webpage I made with lots of pictures, data, and descriptions that can be used in this recreation. 
+
+https://www.observedimpulse.com/2025/05/lets-digitally-recreate-original.html
 
 Attached to this repo is the code to run a very simple proof of concept vibecoded for threejs. Let's make a better one! There are actually few videos and pictures of this retired mall online but it was once arguably the most well-known mall in the world and featured in several movies. It was beautiful, had lots of neon, a glass elevator, and three to four levels of nostalgic 80s stores and vendors.
 With the rapid advancement of AI tools, especially agentic large language models capable of coding, searching, and designing, we're approaching an era where projects like this could be completed in just a few days. Even now, combining tools like Blender with ChatGPT or Gemini and generative image models brings us closer to that goal, provided we have the right floorplans and reference photos.
